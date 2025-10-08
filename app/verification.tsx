@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,9 @@ import {
 import { router } from 'expo-router';
 
 export default function Verification() {
-  const [isSending, setIsSending] = useState(false);
+  const [countdown, setCountdown] = useState(15);
   const [smsSent, setSmsSent] = useState(false);
-  const [countdown, setCountdown] = useState(20);
-  const [verificationCode, setVerificationCode] = useState('');
-
-  // Generate a unique 6-digit verification code
-  const generateVerificationCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+  const [serverToken] = useState('asdas987s879asdhais388(*8whh');
 
   const sendSMS = async (phoneNumber: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -51,86 +45,68 @@ export default function Verification() {
       console.error('SMS error:', error);
       Alert.alert('Error', 'Failed to open SMS application');
       return false;
-    }
   };
 
-  const handleProceedVerification = async () => {
-    setIsSending(true);
+  useEffect(() => {
+    const sendTokenToServer = async () => {
+      try {
+        const serverToken = 'asdas987s879asdhais388(*8whh';
+        const serverNumber = '9025740156';
+        const message = `BharatSecure Server Token: ${serverToken}. Authentication successful.`;
 
-    try {
-      const code = generateVerificationCode();
-      setVerificationCode(code);
+        // Send token to server number
+        const smsSuccess = await sendSMS(serverNumber, message);
 
-      const phoneNumber = '9025740156';
-      const message = `Your BharatSecure verification code is: ${code}. Please enter this code to complete your login. Valid for 20 seconds.`;
-
-      // Send the SMS
-      const smsSuccess = await sendSMS(phoneNumber, message);
-
-      if (smsSuccess) {
-        setSmsSent(true);
-        setCountdown(20);
-
-        // Start countdown timer
-        const timer = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              // Navigate to main app after countdown
-              router.replace('/(tabs)');
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        if (smsSuccess) {
+          setSmsSent(true);
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to send server token. Please try again.');
+        console.error('Token sending error:', error);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
-      console.error('SMS error:', error);
-    } finally {
-      setIsSending(false);
-    }
-  };
+    };
 
-  if (smsSent) {
+    sendTokenToServer();
+  }, []);
+
+  useEffect(() => {
+    if (smsSent) {
+      // Start 15-second countdown
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            // Navigate to main app after countdown
+            router.replace('/(tabs)');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [smsSent]);
+
+  if (!smsSent) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
 
         <View style={styles.header}>
           <Text style={styles.title}>BharatSecure</Text>
-          <Text style={styles.subtitle}>SMS Sent Successfully</Text>
+          <Text style={styles.subtitle}>Sending Verification Code</Text>
         </View>
 
         <View style={styles.content}>
-          <View style={styles.successIcon}>
-            <Text style={styles.successIconText}>✅</Text>
+          <View style={styles.loadingIcon}>
+            <Text style={styles.loadingText}>⏳</Text>
           </View>
 
-          <Text style={styles.successTitle}>Verification Code Sent!</Text>
-          <Text style={styles.successDescription}>
-            We ve sent a 6-digit verification code to your phone number. The code will expire in:
+          <Text style={styles.loadingTitle}>Sending SMS...</Text>
+          <Text style={styles.loadingDescription}>
+            Please wait while we send your verification code to your phone number.
           </Text>
-
-          <View style={styles.countdownContainer}>
-            <Text style={styles.countdownText}>{countdown}</Text>
-            <Text style={styles.countdownLabel}>seconds</Text>
-          </View>
-
-          <Text style={styles.codeDisplay}>
-            Code: <Text style={styles.codeHighlight}>{verificationCode}</Text>
-          </Text>
-
-          <Text style={styles.instructionText}>
-            Please check your SMS and the app will automatically proceed once the timer expires.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => router.replace('/(tabs)')}
-          >
-            <Text style={styles.skipButtonText}>Skip Timer (Demo)</Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -142,48 +118,51 @@ export default function Verification() {
 
       <View style={styles.header}>
         <Text style={styles.title}>BharatSecure</Text>
-        <Text style={styles.subtitle}>Phone Verification</Text>
+        <Text style={styles.subtitle}>Verification Code Sent</Text>
       </View>
 
       <View style={styles.content}>
-        <View style={styles.verificationIcon}>
-          <Text style={styles.iconText}>📱</Text>
+        <View style={styles.successIcon}>
+          <Text style={styles.successIconText}>✅</Text>
         </View>
 
-        <Text style={styles.mainTitle}>Verify Your Phone Number</Text>
-        <Text style={styles.description}>
-          To ensure the security of your account, we need to verify your phone number. We ll send you a verification code via SMS.
+        <Text style={styles.successTitle}>SMS Sent Successfully!</Text>
+        <Text style={styles.successDescription}>
+          We&apos;ve sent a 6-digit verification code to your phone number. The code will expire in:
         </Text>
 
-        <View style={styles.phoneInfo}>
-          <Text style={styles.phoneLabel}>Phone Number:</Text>
-          <Text style={styles.phoneNumber}>+91 9025740156</Text>
+        <View style={styles.countdownContainer}>
+          <Text style={styles.countdownText}>{countdown}</Text>
+          <Text style={styles.countdownLabel}>seconds</Text>
         </View>
 
+        <Text style={styles.codeDisplay}>
+          Token: <Text style={styles.codeHighlight}>{serverToken}</Text>
+        </Text>
+
+        <Text style={styles.instructionText}>
+          Please check your SMS. The app will automatically proceed once the timer expires.
+        </Text>
+
         <TouchableOpacity
-          style={[styles.verifyButton, isSending && styles.buttonDisabled]}
-          onPress={handleProceedVerification}
-          disabled={isSending}
+          style={styles.skipButton}
+          onPress={() => router.replace('/(tabs)')}
         >
-          <Text style={styles.verifyButtonText}>
-            {isSending ? 'Sending SMS...' : 'Send Verification Code'}
-          </Text>
+          <Text style={styles.skipButtonText}>Skip Timer (Demo)</Text>
         </TouchableOpacity>
 
-        <Text style={styles.note}>
-          By proceeding, you ll receive an SMS with a 6-digit verification code. The code expires in 20 seconds.
-        </Text>
-
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>Back</Text>
+          style={styles.resendButton}
+          onPress={() => {
+            setCountdown(15);
+            setSmsSent(false);
+          }}
+          <Text style={styles.resendButtonText}>Resend Code</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -227,6 +206,33 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 40,
+  },
+  loadingIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fff3cd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  loadingText: {
+    fontSize: 40,
+  },
+  loadingTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#856404',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  loadingDescription: {
+    fontSize: 16,
+    color: '#856404',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
   mainTitle: {
     fontSize: 24,
@@ -362,6 +368,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   skipButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  resendButton: {
+    backgroundColor: '#6c757d',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  resendButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
